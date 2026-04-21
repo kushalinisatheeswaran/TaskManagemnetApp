@@ -35,35 +35,26 @@ export const ProjectDetails: React.FC = () => {
 
   const fetchData = async () => {
     try {
-       const res = await api.get(`/projects/${id}`);
-       setProject(res.data);
+      const res = await api.get(`/projects/${id}`);
+      setProject(res.data);
     } catch (error) {
-       console.error('Failed to fetch project details');
+      console.error('Failed to fetch project details');
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
-
+  const fetchTasks = async () => {
+    try {
+      const res = await api.get(`/tasks/project/${id}`);
+      setTasks(res.data);
+    } catch (err) {
+      console.error('Failed to fetch tasks');
+    }
+  };
   useEffect(() => {
     fetchData();
-
-    if (!currentUser || !id) return;
-
-    const q = query(
-      collection(db, 'tasks'), 
-      where('projectId', '==', id)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const liveTasks = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Task[];
-      setTasks(liveTasks);
-    });
-
-    return () => unsubscribe();
-  }, [id, currentUser]);
+    fetchTasks();
+  }, [id]);
 
   const handleDeleteProject = async () => {
     if (!confirm('Are you sure you want to delete this project?')) return;
@@ -79,33 +70,32 @@ export const ProjectDetails: React.FC = () => {
     e.preventDefault();
     try {
       await api.post(`/tasks/project/${id}`, newTask);
+      await fetchTasks();
       setNewTask({ title: '', description: '', status: 'Todo', dueDate: '', priority: 'Low' });
       setShowTaskModal(false);
-      // Real-time listener handles the update automatically
     } catch (err) {
       console.error('Failed to create task');
     }
   };
-
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
     try {
-       // Optimistic update
-       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
-       await api.put(`/tasks/${taskId}`, { status });
-       // Real-time listener will sync if optimistic update differs
+      // Optimistic update
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
+      await api.put(`/tasks/${taskId}`, { status });
+      // Real-time listener will sync if optimistic update differs
     } catch (err) {
-       console.error('Failed to update status');
-       // In a real app we might revert the optimistic update or fetch data
+      console.error('Failed to update status');
+      // In a real app we might revert the optimistic update or fetch data
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if(!confirm('Delete this task?')) return;
+    if (!confirm('Delete this task?')) return;
     try {
-       setTasks(prev => prev.filter(t => t.id !== taskId));
-       await api.delete(`/tasks/${taskId}`);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      await api.delete(`/tasks/${taskId}`);
     } catch (err) {
-       console.error('Failed to delete task');
+      console.error('Failed to delete task');
     }
   };
 
@@ -133,7 +123,7 @@ export const ProjectDetails: React.FC = () => {
 
     if (newStatus !== oldStatus) {
       // Optimistic update
-      setTasks(prev => prev.map(t => 
+      setTasks(prev => prev.map(t =>
         t.id === draggableId ? { ...t, status: newStatus } : t
       ));
 
@@ -149,8 +139,8 @@ export const ProjectDetails: React.FC = () => {
   if (!project) return <div className="container" style={{ padding: '2rem' }}>Project not found.</div>;
 
   const filteredTasks = tasks.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPriority = filterPriority === 'All' || t.priority === filterPriority;
     return matchesSearch && matchesPriority;
   });
@@ -168,9 +158,9 @@ export const ProjectDetails: React.FC = () => {
   return (
     <div className="container">
       <div style={{ marginBottom: '1rem' }}>
-         <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-           <ArrowLeft size={16} /> Back to Projects
-         </Link>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+          <ArrowLeft size={16} /> Back to Projects
+        </Link>
       </div>
       <div className="page-header">
         <div>
@@ -181,14 +171,14 @@ export const ProjectDetails: React.FC = () => {
           {project.members && project.members.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
               {project.members.map((email: string, i: number) => (
-                <div 
-                  key={email} 
+                <div
+                  key={email}
                   title={email}
-                  style={{ 
-                    width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-primary)', 
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-primary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
                     fontWeight: 'bold', fontSize: '14px', border: '2px solid var(--bg-surface)',
-                    marginLeft: i > 0 ? '-10px' : '0', zIndex: project.members.length - i 
+                    marginLeft: i > 0 ? '-10px' : '0', zIndex: project.members.length - i
                   }}
                 >
                   {email.charAt(0).toUpperCase()}
@@ -215,8 +205,8 @@ export const ProjectDetails: React.FC = () => {
         </div>
         <div style={{ flex: '1 1 300px', position: 'relative' }}>
           <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-          <input 
-            placeholder="Search tasks..." 
+          <input
+            placeholder="Search tasks..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
@@ -224,8 +214,8 @@ export const ProjectDetails: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Priority:</label>
-          <select 
-            value={filterPriority} 
+          <select
+            value={filterPriority}
             onChange={e => setFilterPriority(e.target.value)}
             style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
           >
@@ -242,7 +232,7 @@ export const ProjectDetails: React.FC = () => {
           {['Todo', 'In Progress', 'Done'].map(status => (
             <Droppable droppableId={status} key={status}>
               {(provided, snapshot) => (
-                <div 
+                <div
                   className="task-column"
                   ref={provided.innerRef}
                   {...provided.droppableProps}
@@ -252,18 +242,18 @@ export const ProjectDetails: React.FC = () => {
                   }}
                 >
                   <div className="task-column-header">
-                     <span>{status}</span>
-                     <span style={{ fontSize: '0.8rem', background: 'var(--bg-color)', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>
-                       {getStatusColumn(status).length}
-                     </span>
+                    <span>{status}</span>
+                    <span style={{ fontSize: '0.8rem', background: 'var(--bg-color)', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>
+                      {getStatusColumn(status).length}
+                    </span>
                   </div>
                   {getStatusColumn(status).map((task, index) => (
-                    <TaskCard 
-                      key={task.id} 
-                      task={task} 
-                      index={index} 
-                      onUpdateStatus={handleUpdateTaskStatus} 
-                      onDelete={handleDeleteTask} 
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      onUpdateStatus={handleUpdateTaskStatus}
+                      onDelete={handleDeleteTask}
                       onClick={setSelectedTask}
                     />
                   ))}
@@ -286,19 +276,30 @@ export const ProjectDetails: React.FC = () => {
             <form onSubmit={handleCreateTask}>
               <div className="form-group">
                 <label>Task Title</label>
-                <input required value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
+                <input required value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} />
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <textarea rows={3} value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} />
+                <textarea rows={3} value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} />
               </div>
               <div className="form-group">
                 <label>Due Date</label>
-                <input type="date" value={newTask.dueDate} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
+                <input type="date" value={newTask.dueDate} onChange={e => setNewTask({ ...newTask, dueDate: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={newTask.status}
+                  onChange={e => setNewTask({ ...newTask, status: e.target.value })}
+                >
+                  <option value="Todo">Todo</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Priority</label>
-                <select value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
+                <select value={newTask.priority} onChange={e => setNewTask({ ...newTask, priority: e.target.value })}>
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>

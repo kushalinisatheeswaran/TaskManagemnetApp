@@ -22,6 +22,10 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onUpdateStatus, onDelete, onClick }) => {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const isOverdue = new Date(task.dueDate) < today && task.status !== 'Done';
+
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -71,11 +75,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onUpdateStatus,
           {task.description && <div className="task-item-desc">{task.description}</div>}
           {task.dueDate && (
             <div className="task-item-desc" style={{ 
-              color: new Date(task.dueDate) < new Date(new Date().setHours(0,0,0,0)) && task.status !== 'Done' ? '#ef4444' : 'var(--accent-primary)', 
+              color: isOverdue ? '#ef4444' : 'var(--accent-primary)', 
               fontSize: '0.75rem',
-              fontWeight: new Date(task.dueDate) < new Date(new Date().setHours(0,0,0,0)) && task.status !== 'Done' ? '600' : 'normal'
+              fontWeight: isOverdue ? '600' : 'normal'
             }}>
-              Due: {task.dueDate} {new Date(task.dueDate) < new Date(new Date().setHours(0,0,0,0)) && task.status !== 'Done' ? '(Overdue)' : ''}
+              Due: {task.dueDate} {isOverdue ? '(Overdue)' : ''}
             </div>
           )}
           <div className="task-item-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>

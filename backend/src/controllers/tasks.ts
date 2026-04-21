@@ -64,9 +64,8 @@ export const createTask = async (req: AuthenticatedRequest, res: Response): Prom
       attachments: [],
       createdAt: new Date().toISOString()
     });
-    res.status(201).json({ id: docRef.id, projectId, title, description, status, dueDate, priority: priority || 'Low', assignee: assignee || null, attachments: [] });
-    
     await logActivity(docRef.id, req.user.uid, req.user.email || 'User', 'Task created');
+    res.status(201).json({ id: docRef.id, projectId, title, description, status, dueDate, priority: priority || 'Low', assignee: assignee || null, attachments: [] });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create task' });
   }
@@ -83,7 +82,7 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response): Prom
     }
     
     await docRef.update(req.body);
-    res.json({ id: doc.id, ...req.body });
+    res.json({ id: doc.id, ...doc.data(), ...req.body });
 
     let actionDesc = 'Task updated';
     if (req.body.status && doc.data()?.status !== req.body.status) {

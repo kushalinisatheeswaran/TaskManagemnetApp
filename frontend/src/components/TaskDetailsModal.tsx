@@ -35,9 +35,10 @@ interface TaskDetailsModalProps {
   task: Task;
   projectMembers: string[];
   onClose: () => void;
+  onUpdate?: (updated: Partial<Task>) => void;
 }
 
-export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, projectMembers, onClose }) => {
+export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, projectMembers, onClose, onUpdate }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -109,6 +110,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, projec
       const updatedAttachments = [...(task.attachments || []), newAttachment];
       
       await api.put(`/tasks/${task.id}`, { attachments: updatedAttachments });
+      onUpdate?.({ attachments: updatedAttachments });
     } catch (error) {
       console.error('Failed to upload file', error);
     } finally {

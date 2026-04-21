@@ -80,9 +80,22 @@ export const deleteProject = async (req: AuthenticatedRequest, res: Response): P
     // Delete all tasks in the project
     const tasksSnapshot = await tasksRef.where('projectId', '==', id).get();
     const batch = db.batch();
+    const taskIds = tasksSnapshot.docs.map(doc => doc.id);
+
     tasksSnapshot.docs.forEach(obj => {
       batch.delete(obj.ref);
     });
+
+    for (let i = 0; i < taskIds.length; i += 30) {
+      const chunk = taskIds.slice(i, i + 30);
+      
+      const commentsSnapshot = await db.collection('comments').where('taskId', 'in', chunk).get();
+      commentsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+      const activitiesSnapshot = await db.collection('activities').where('taskId', 'in', chunk).get();
+      activitiesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+    }
+
     await batch.commit();
 
     res.json({ message: 'Project deleted' });
